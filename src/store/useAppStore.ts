@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { IProfileRepository } from '../db/IProfileRepository'
 import { localRepo } from '../db/LocalSQLiteRepository'
+import { seedIfEmpty } from '../db/seed'
 import { calcTotalCasesPerPallet, type StackingProfile } from '../types'
 
 interface AppState {
@@ -45,6 +46,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       await repo.init()
+      await seedIfEmpty(repo)
       const profiles = await repo.getAll()
       set({
         profiles,
