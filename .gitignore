@@ -31,4 +31,6 @@ dist-ssr
 # wasm bundle – keep public wasm for sql.js (Vercel same-origin)
 *.wasm
 !public/*.wasm
+!public/sql-wasm.wasm
+!public/sql-wasm-browser.wasm
 .DS_Store

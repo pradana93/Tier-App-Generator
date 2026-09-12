@@ -109,9 +109,8 @@ export class LocalSQLiteRepository implements IProfileRepository {
     this.SQL = await initSqlJs({
       locateFile: (file: string) => {
         if (file.endsWith('.wasm')) {
-          // Serve from public/ for same-origin (Vercel-safe), fallback CDN only if missing
-          // Vite base_url ensures correct path on preview deploys
-          return `${import.meta.env.BASE_URL}${file}`
+          // Both sql-wasm.wasm and sql-wasm-browser.wasm are identical; serve same-origin
+          return `${import.meta.env.BASE_URL}sql-wasm.wasm`
         }
         return file
       },
