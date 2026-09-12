@@ -1,5 +1,7 @@
 export type LayerPattern = 'Column' | 'Alternate' | 'Interlocked'
 
+export type CasePos = { x: number; z: number; w: number; d: number }
+
 export interface StackingProfile {
   id: string
   itemName: string
@@ -8,6 +10,8 @@ export interface StackingProfile {
   casesPerLayer: number
   totalLayersHigh: number
   layerPatterns: LayerPattern[]
+  // A+C: freeform overrides – per-layer custom positions (cm-scaled world units stored)
+  customLayouts?: CasePos[][] | null
   totalCasesPerPallet: number
   maxPalletStack: number
   createdAt: string

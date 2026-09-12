@@ -68,10 +68,50 @@ function idbSet(data: Uint8Array): Promise<void> {
 }
 
 function parseRow(row: unknown[]): StackingProfile {
-  // id, itemName, palletWidth, palletLength, casesPerLayer, totalLayersHigh, layerPatterns, totalCasesPerPallet, maxPalletStack, createdAt, updatedAt
-  const [id, itemName, palletWidth, palletLength, casesPerLayer, totalLayersHigh, layerPatternsRaw, totalCasesPerPallet, maxPalletStack, createdAt, updatedAt] = row as [
-    string, string, number, number, number, number, string, number, number, string, string,
-  ]
+  // Support old (11 cols) and new (12 cols with customLayouts) schemas
+  const cols = row as unknown[]
+  let idx = 0
+  const id = cols[idx++] as string
+  const itemName = cols[idx++] as string
+  const palletWidth = cols[idx++] as number
+  const palletLength = cols[idx++] as number
+  const casesPerLayer = cols[idx++] as number
+  const totalLayersHigh = cols[idx++] as number
+  const layerPatternsRaw = cols[idx++] as string
+  const totalCasesPerPallet = cols[idx++] as number
+  const maxPalletStack = cols[idx++] as number
+  // customLayouts may be present as next col if migration applied
+  let customLayouts: StackingProfile['customLayouts'] = null
+  let createdAt: string
+  let updatedAt: string
+  if (cols.length === 12) {
+    // new schema: customLayouts is col 9
+    const customRaw = cols[idx++] as string | null
+    if (customRaw) {
+      try {
+        customLayouts = JSON.parse(customRaw) as StackingProfile['customLayouts']
+      } catch {
+        customLayouts = null
+      }
+    }
+    createdAt = cols[idx++] as string
+    updatedAt = cols[idx++] as string
+  } else if (cols.length === 13) {
+    // future proof
+    const customRaw = cols[idx++] as string | null
+    if (customRaw) {
+      try {
+        customLayouts = JSON.parse(customRaw) as StackingProfile['customLayouts']
+      } catch {
+        customLayouts = null
+      }
+    }
+    createdAt = cols[idx++] as string
+    updatedAt = cols[idx++] as string
+  } else {
+    createdAt = cols[idx++] as string
+    updatedAt = cols[idx++] as string
+  }
   let layerPatterns: LayerPattern[] = []
   try {
     layerPatterns = JSON.parse(layerPatternsRaw) as LayerPattern[]
@@ -86,6 +126,7 @@ function parseRow(row: unknown[]): StackingProfile {
     casesPerLayer,
     totalLayersHigh,
     layerPatterns,
+    customLayouts,
     totalCasesPerPallet,
     maxPalletStack,
     createdAt,
@@ -150,10 +191,21 @@ export class LocalSQLiteRepository implements IProfileRepository {
         layerPatterns TEXT NOT NULL,
         totalCasesPerPallet INTEGER NOT NULL,
         maxPalletStack INTEGER NOT NULL DEFAULT 1,
+        customLayouts TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       );
     `)
+    // Migration for existing DB without customLayouts
+    try {
+      const cols = this.db.exec(`PRAGMA table_info(profiles)`)
+      const hasCustom = cols[0]?.values?.some((r: unknown[]) => (r as string[])[1] === 'customLayouts')
+      if (!hasCustom) {
+        this.db.exec(`ALTER TABLE profiles ADD COLUMN customLayouts TEXT`)
+      }
+    } catch {
+      // ignore
+    }
     // Ensure indexes
     try {
       this.db.exec(`CREATE INDEX IF NOT EXISTS idx_profiles_itemName ON profiles(itemName);`)
@@ -210,7 +262,7 @@ export class LocalSQLiteRepository implements IProfileRepository {
       throw new Error(`LayerPatterns length (${p.layerPatterns.length}) must equal TotalLayersHigh (${p.totalLayersHigh})`)
     }
     this.db!.run(
-      `INSERT INTO profiles (id, itemName, palletWidth, palletLength, casesPerLayer, totalLayersHigh, layerPatterns, totalCasesPerPallet, maxPalletStack, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO profiles (id, itemName, palletWidth, palletLength, casesPerLayer, totalLayersHigh, layerPatterns, totalCasesPerPallet, maxPalletStack, customLayouts, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         p.id,
         p.itemName,
@@ -221,6 +273,7 @@ export class LocalSQLiteRepository implements IProfileRepository {
         JSON.stringify(p.layerPatterns),
         p.totalCasesPerPallet,
         p.maxPalletStack,
+        p.customLayouts ? JSON.stringify(p.customLayouts) : null,
         p.createdAt,
         p.updatedAt,
       ],
@@ -244,7 +297,7 @@ export class LocalSQLiteRepository implements IProfileRepository {
       throw new Error(`LayerPatterns length (${merged.layerPatterns.length}) must equal TotalLayersHigh (${merged.totalLayersHigh})`)
     }
     this.db!.run(
-      `UPDATE profiles SET itemName = ?, palletWidth = ?, palletLength = ?, casesPerLayer = ?, totalLayersHigh = ?, layerPatterns = ?, totalCasesPerPallet = ?, maxPalletStack = ?, updatedAt = ? WHERE id = ?`,
+      `UPDATE profiles SET itemName = ?, palletWidth = ?, palletLength = ?, casesPerLayer = ?, totalLayersHigh = ?, layerPatterns = ?, totalCasesPerPallet = ?, maxPalletStack = ?, customLayouts = ?, updatedAt = ? WHERE id = ?`,
       [
         merged.itemName,
         merged.palletWidth,
@@ -254,6 +307,7 @@ export class LocalSQLiteRepository implements IProfileRepository {
         JSON.stringify(merged.layerPatterns),
         merged.totalCasesPerPallet,
         merged.maxPalletStack,
+        merged.customLayouts ? JSON.stringify(merged.customLayouts) : null,
         merged.updatedAt,
         id,
       ],

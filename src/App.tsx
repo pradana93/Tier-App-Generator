@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { PalletVisualizer } from './components/PalletVisualizer'
 import { Sidebar } from './components/Sidebar'
 import { SpecPanel } from './components/SpecPanel'
 import { useAppStore } from './store/useAppStore'
+import type { CasePos } from './types'
 
 function App() {
   const init = useAppStore((s) => s.init)
@@ -10,10 +11,54 @@ function App() {
   const loading = useAppStore((s) => s.loading)
   const error = useAppStore((s) => s.error)
   const selectedProfile = useAppStore((s) => s.selectedProfile)()
+  const updateProfile = useAppStore((s) => s.updateProfile)
 
   useEffect(() => {
     init()
   }, [init])
+
+  const handleLayoutChange = useCallback(
+    (layerIdx: number, newPositions: CasePos[]) => {
+      if (!selectedProfile) return
+      const base = selectedProfile.customLayouts
+        ? [...selectedProfile.customLayouts]
+        : Array(selectedProfile.totalLayersHigh)
+            .fill(null)
+            .map(() => null as unknown as CasePos[])
+      // fill missing layers with null to force auto, then set this layer
+      while (base.length < selectedProfile.totalLayersHigh) base.push([] as unknown as CasePos[])
+      base[layerIdx] = newPositions
+      // For layers without custom, keep null (auto)
+      updateProfile(selectedProfile.id, { customLayouts: base as CasePos[][] } as any)
+    },
+    [selectedProfile, updateProfile],
+  )
+
+  const handlePalletResize = useCallback(
+    (w: number, l: number) => {
+      if (!selectedProfile) return
+      const nw = Math.max(40, Math.min(200, Math.round(w)))
+      const nl = Math.max(40, Math.min(200, Math.round(l)))
+      updateProfile(selectedProfile.id, { palletWidth: nw, palletLength: nl } as any)
+    },
+    [selectedProfile, updateProfile],
+  )
+
+  const handleAddCase = useCallback(() => {
+    if (!selectedProfile) return
+    const next = Math.min(30, selectedProfile.casesPerLayer + 1)
+    updateProfile(selectedProfile.id, { casesPerLayer: next, customLayouts: null } as any)
+  }, [selectedProfile, updateProfile])
+
+  const handleRemoveCase = useCallback(
+    (_layerIdx: number, _caseIdx: number) => {
+      if (!selectedProfile) return
+      if (selectedProfile.casesPerLayer <= 1) return
+      const next = selectedProfile.casesPerLayer - 1
+      updateProfile(selectedProfile.id, { casesPerLayer: next, customLayouts: null } as any)
+    },
+    [selectedProfile, updateProfile],
+  )
 
   if (!initialized && loading) {
     return (
@@ -54,7 +99,12 @@ function App() {
                   palletLength={selectedProfile.palletLength}
                   casesPerLayer={selectedProfile.casesPerLayer}
                   layerPatterns={selectedProfile.layerPatterns}
+                  customLayouts={selectedProfile.customLayouts}
                   maxPalletStack={selectedProfile.maxPalletStack}
+                  onLayoutChange={handleLayoutChange}
+                  onPalletResize={handlePalletResize}
+                  onAddCase={handleAddCase}
+                  onRemoveCase={handleRemoveCase}
                 />
                 {/* Spec Panel overlay – matches reference image in monospace */}
                 <div className="absolute bottom-4 left-4 max-w-[360px] z-10">

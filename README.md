@@ -59,6 +59,13 @@ src/
   - Generic `n` → `cols=ceil(sqrt(n)), rows=ceil(n/cols)` grid
 - `SinglePalletStack` renders `layerPatterns[i]` per layer; `maxPalletStack` renders pallets side-by-side with gap 2.
 
+## Interactive 3D Editing (A & C)
+
+- **Case drag:** `DragControls` axisLock `y` (XZ plane) on each `CaseBoxLight` `src/components/PalletVisualizer.tsx:118`. Snap `0.25`, clamp to `pw/2-w/2`, collision AABB `dx<w-0.15 && dz<d-0.15`, orbit disabled while dragging, `frameloop="demand"` + `invalidate()`. Off-pallet drop (>1.2 outside) → `onRemoveCase` → `casesPerLayer-1`. On drag end → `onLayoutChange(layerIdx, newPositions)` → `App.tsx:32` `updateProfile({customLayouts})`.
+- **Pallet resize:** orange handles at `+X` / `+Z` edges `PalletResizeHandles` `src/components/PalletVisualizer.tsx:156`, drag X/Z → `onPalletResize(w,l)` → `App.tsx:45` `updateProfile({palletWidth,palletLength})` 40–200cm clamp.
+- **Palette add/remove:** top overlay `+ Add Case` `src/components/PalletVisualizer.tsx:268` → `casesPerLayer+1`, drag-off to remove. `customLayouts` stores per-layer `CasePos[][]` `src/types/index.ts:5`, persisted via `customLayouts TEXT` JSON in `LocalSQLiteRepository.ts:142` (auto-migrated via `PRAGMA table_info`). `src/store/useAppStore.ts:43` migrates mm→cm and handles `customLayouts`.
+- **Perf:** `frameloop="demand"`, `dpr` adaptive, `antialias false`, `meshLambert` + shared `BoxGeometry` cache, no shadows/HDR, `AdaptiveDpr`/`AdaptiveEvents` + `PerformanceMonitor`.
+
 ## Migrating to Supabase
 
 Swap `LocalSQLiteRepository` with a future `SupabaseRepository` — **zero UI / store changes** required.
