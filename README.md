@@ -30,7 +30,7 @@ Total             : 33 Cases
 Maksimum Tumpukan : 2 Pallet
 ```
 
-- Pallet 1000×1200mm, case layout uses 4-4-3 bounded grid; Alternate layer rotates 90°.
+- Pallet 100×120cm, case layout uses 4-4-3 bounded grid; Alternate layer rotates 90°.
 
 ## Project Structure
 
@@ -52,7 +52,7 @@ src/
 
 ## Stacking Logic
 
-- `CASE_H=1.1, PALLET_H=0.4, GAP=0.12` (world units; `SCALE=100` for mm→units)
+- `CASE_H=1.1, PALLET_H=0.4, GAP=0.12` (world units; `SCALE=10` for cm→units)
 - `getCasePositions(casesPerLayer, palletW, palletL, rotate90)`:
   - 11 → explicit 4-4-3 grid: row Z = [-3.6,0,3.6], cols [4,4,3], case 2.25×2.75
   - Alternate → `(x,z)->(-z,x)` and `w/d` swap, clamped to pallet bounds
@@ -130,8 +130,8 @@ export class SupabaseRepository implements IProfileRepository {
 create table public.profiles (
   id text primary key,
   item_name text not null,
-  pallet_width integer not null default 1000,
-  pallet_length integer not null default 1200,
+  pallet_width integer not null default 100,
+  pallet_length integer not null default 120,
   cases_per_layer integer not null,
   total_layers_high integer not null,
   layer_patterns jsonb not null,

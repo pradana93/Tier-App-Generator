@@ -47,7 +47,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await repo.init()
       await seedIfEmpty(repo)
-      const profiles = await repo.getAll()
+      let profiles = await repo.getAll()
+      // migrate mm -> cm for existing data (1000/1200 -> 100/120)
+      for (const p of profiles) {
+        if (p.palletWidth > 500 || p.palletLength > 500) {
+          const nw = Math.round(p.palletWidth / 10)
+          const nl = Math.round(p.palletLength / 10)
+          try {
+            await repo.update(p.id, { palletWidth: nw, palletLength: nl })
+            p.palletWidth = nw
+            p.palletLength = nl
+          } catch {
+            // ignore
+          }
+        }
+      }
+      // re-fetch if migrated to ensure consistency
+      if (profiles.some((p) => p.palletWidth > 500 || p.palletLength > 500)) {
+        profiles = await repo.getAll()
+      }
       set({
         profiles,
         selectedId: profiles[0]?.id ?? null,
@@ -63,7 +81,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { repo } = get()
     set({ loading: true })
     try {
-      const profiles = await repo.getAll()
+      let profiles = await repo.getAll()
+      for (const p of profiles) {
+        if (p.palletWidth > 500 || p.palletLength > 500) {
+          const nw = Math.round(p.palletWidth / 10)
+          const nl = Math.round(p.palletLength / 10)
+          try {
+            await repo.update(p.id, { palletWidth: nw, palletLength: nl })
+            p.palletWidth = nw
+            p.palletLength = nl
+          } catch {}
+        }
+      }
       set({ profiles, loading: false })
       // keep selection valid
       const { selectedId } = get()

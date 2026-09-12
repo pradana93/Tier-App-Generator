@@ -143,8 +143,8 @@ export class LocalSQLiteRepository implements IProfileRepository {
       CREATE TABLE IF NOT EXISTS profiles (
         id TEXT PRIMARY KEY,
         itemName TEXT NOT NULL,
-        palletWidth INTEGER NOT NULL DEFAULT 1000,
-        palletLength INTEGER NOT NULL DEFAULT 1200,
+        palletWidth INTEGER NOT NULL DEFAULT 100,
+        palletLength INTEGER NOT NULL DEFAULT 120,
         casesPerLayer INTEGER NOT NULL,
         totalLayersHigh INTEGER NOT NULL,
         layerPatterns TEXT NOT NULL,

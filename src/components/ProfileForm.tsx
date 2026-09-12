@@ -14,8 +14,8 @@ export function ProfileForm({ initial, onClose }: Props) {
   const isEdit = !!initial
 
   const [itemName, setItemName] = useState(initial?.itemName ?? '')
-  const [palletWidth, setPalletWidth] = useState(initial?.palletWidth ?? 1000)
-  const [palletLength, setPalletLength] = useState(initial?.palletLength ?? 1200)
+  const [palletWidth, setPalletWidth] = useState(initial?.palletWidth ?? 100)
+  const [palletLength, setPalletLength] = useState(initial?.palletLength ?? 120)
   const [casesPerLayer, setCasesPerLayer] = useState(initial?.casesPerLayer ?? 11)
   const [totalLayersHigh, setTotalLayersHigh] = useState(initial?.totalLayersHigh ?? 3)
   const [maxPalletStack, setMaxPalletStack] = useState(initial?.maxPalletStack ?? 2)
@@ -107,7 +107,7 @@ export function ProfileForm({ initial, onClose }: Props) {
 
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
-              <span className="text-xs font-mono tracking-widest text-zinc-400">PALLET WIDTH (mm)</span>
+              <span className="text-xs font-mono tracking-widest text-zinc-400">PALLET WIDTH (cm)</span>
               <input
                 type="number"
                 value={palletWidth}
@@ -116,7 +116,7 @@ export function ProfileForm({ initial, onClose }: Props) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-mono tracking-widest text-zinc-400">PALLET LENGTH (mm)</span>
+              <span className="text-xs font-mono tracking-widest text-zinc-400">PALLET LENGTH (cm)</span>
               <input
                 type="number"
                 value={palletLength}

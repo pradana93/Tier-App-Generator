@@ -3,8 +3,8 @@ export type LayerPattern = 'Column' | 'Alternate' | 'Interlocked'
 export interface StackingProfile {
   id: string
   itemName: string
-  palletWidth: number
-  palletLength: number
+  palletWidth: number // cm
+  palletLength: number // cm
   casesPerLayer: number
   totalLayersHigh: number
   layerPatterns: LayerPattern[]

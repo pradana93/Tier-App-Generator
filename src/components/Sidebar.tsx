@@ -46,7 +46,7 @@ export function Sidebar() {
                   {p.casesPerLayer} × {p.totalLayersHigh} = {p.totalCasesPerPallet} cases
                 </p>
                 <p className="text-xs font-mono text-zinc-500">
-                  {p.palletWidth}×{p.palletLength}mm · Stack {p.maxPalletStack}
+                  {p.palletWidth}×{p.palletLength}cm · Stack {p.maxPalletStack}
                 </p>
                 <div className="flex gap-1 mt-2 flex-wrap">
                   {p.layerPatterns.map((pat, i) => (

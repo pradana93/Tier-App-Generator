@@ -5,7 +5,7 @@ import { OrbitControls, Grid, Environment } from '@react-three/drei'
 import * as THREE from 'three'
 import type { LayerPattern } from '../types'
 
-const SCALE = 100 // mm -> world units
+const SCALE = 10 // cm -> world units (100cm -> 10 units)
 const GAP = 0.12
 const CASE_H = 1.1
 const PALLET_H = 0.4

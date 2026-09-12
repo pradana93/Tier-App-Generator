@@ -54,7 +54,7 @@ export function SpecPanel({ profile }: { profile: StackingProfile }) {
           Total in Stack: <span className="text-[#f59e0b] font-bold">{totalStack} Cases</span>
           {profile.maxPalletStack > 3 && <span className="ml-2 text-red-400">⚠ exceeds safety (max 3)</span>}
         </div>
-        <div className="text-[10px] text-zinc-600">Pallet {profile.palletWidth}×{profile.palletLength}mm</div>
+        <div className="text-[10px] text-zinc-600">Pallet {profile.palletWidth}×{profile.palletLength}cm</div>
       </div>
     </div>
   )
