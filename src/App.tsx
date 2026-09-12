@@ -43,7 +43,13 @@ function App() {
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 relative bg-[#0a0a0d]">
             {selectedProfile ? (
-              <PalletVisualizer palletWidth={selectedProfile.palletWidth} palletLength={selectedProfile.palletLength} />
+              <PalletVisualizer
+                palletWidth={selectedProfile.palletWidth}
+                palletLength={selectedProfile.palletLength}
+                casesPerLayer={selectedProfile.casesPerLayer}
+                layerPatterns={selectedProfile.layerPatterns}
+                maxPalletStack={selectedProfile.maxPalletStack}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center font-mono text-zinc-600">No profile selected</div>
             )}
