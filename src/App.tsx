@@ -1,121 +1,66 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect } from 'react'
+import { Sidebar } from './components/Sidebar'
+import { SpecPanel } from './components/SpecPanel'
+import { useAppStore } from './store/useAppStore'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const init = useAppStore((s) => s.init)
+  const initialized = useAppStore((s) => s.initialized)
+  const loading = useAppStore((s) => s.loading)
+  const error = useAppStore((s) => s.error)
+  const selectedProfile = useAppStore((s) => s.selectedProfile)()
+
+  useEffect(() => {
+    init()
+  }, [init])
+
+  if (!initialized && loading) {
+    return (
+      <div className="min-h-screen bg-[#0f0f12] flex items-center justify-center font-mono text-zinc-400">
+        Loading warehouse DB...
+      </div>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+    <div className="min-h-screen bg-[#0f0f12] flex h-screen overflow-hidden">
+      <Sidebar />
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Top bar placeholder for 3D status */}
+        <div className="h-12 border-b border-[#2a2a30] bg-[#151519] flex items-center px-6 justify-between">
+          <p className="text-sm font-mono text-zinc-400">
+            {selectedProfile ? `${selectedProfile.itemName} — 3D preview upcoming` : 'No profile selected'}
           </p>
+          {selectedProfile && (
+            <span className="text-xs font-mono bg-[#252529] border border-[#333] px-2.5 py-1 rounded text-zinc-300">
+              {selectedProfile.totalCasesPerPallet * selectedProfile.maxPalletStack} cases in stack
+              {selectedProfile.maxPalletStack > 3 && <span className="text-red-400 ml-2">⚠ Safety limit</span>}
+            </span>
+          )}
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        <div className="flex-1 flex min-h-0">
+          {/* 3D placeholder */}
+          <div className="flex-1 bg-[#0f0f12] flex items-center justify-center p-8">
+            <div className="text-center font-mono">
+              <div className="text-6xl mb-4">📦</div>
+              <p className="text-zinc-500 text-sm">3D Visualizer will appear here (Step 6-8)</p>
+              <p className="text-zinc-600 text-xs mt-2">OrbitControls · Column / Alternate stacking</p>
+            </div>
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          {/* Spec Panel side */}
+          <div className="w-[340px] border-l border-[#2a2a30] bg-[#121214] p-4 overflow-y-auto">
+            {selectedProfile ? (
+              <SpecPanel profile={selectedProfile} />
+            ) : (
+              <p className="text-sm font-mono text-zinc-600">Select a profile to view spec</p>
+            )}
+            {error && <div className="mt-4 p-3 bg-red-950/40 border border-red-800 text-red-300 text-xs font-mono rounded">{error}</div>}
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      </main>
+    </div>
   )
 }
 
