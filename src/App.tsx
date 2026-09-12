@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { PalletVisualizer } from './components/PalletVisualizer'
 import { Sidebar } from './components/Sidebar'
 import { SpecPanel } from './components/SpecPanel'
 import { useAppStore } from './store/useAppStore'
@@ -40,13 +41,12 @@ function App() {
         </div>
 
         <div className="flex-1 flex min-h-0">
-          {/* 3D placeholder */}
-          <div className="flex-1 bg-[#0f0f12] flex items-center justify-center p-8">
-            <div className="text-center font-mono">
-              <div className="text-6xl mb-4">📦</div>
-              <p className="text-zinc-500 text-sm">3D Visualizer will appear here (Step 6-8)</p>
-              <p className="text-zinc-600 text-xs mt-2">OrbitControls · Column / Alternate stacking</p>
-            </div>
+          <div className="flex-1 relative bg-[#0a0a0d]">
+            {selectedProfile ? (
+              <PalletVisualizer palletWidth={selectedProfile.palletWidth} palletLength={selectedProfile.palletLength} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-mono text-zinc-600">No profile selected</div>
+            )}
           </div>
 
           {/* Spec Panel side */}
