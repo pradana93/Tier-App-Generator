@@ -17,8 +17,10 @@ function App() {
 
   if (!initialized && loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f12] flex items-center justify-center font-mono text-zinc-400">
-        Loading warehouse DB...
+      <div className="min-h-screen bg-[#0f0f12] flex flex-col items-center justify-center font-mono gap-3">
+        <div className="w-8 h-8 border-2 border-[#2a2a30] border-t-[#f59e0b] rounded-full animate-spin" />
+        <p className="text-zinc-400 text-sm">Loading warehouse DB...</p>
+        <p className="text-zinc-600 text-xs">Initializing sql.js + IndexedDB</p>
       </div>
     )
   }
@@ -27,15 +29,18 @@ function App() {
     <div className="min-h-screen bg-[#0f0f12] flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Top bar placeholder for 3D status */}
-        <div className="h-12 border-b border-[#2a2a30] bg-[#151519] flex items-center px-6 justify-between">
-          <p className="text-sm font-mono text-zinc-400">
-            {selectedProfile ? `${selectedProfile.itemName} — 3D preview upcoming` : 'No profile selected'}
-          </p>
+        <div className="h-12 border-b border-[#2a2a30] bg-[#151519] flex items-center px-6 justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+            <p className="text-sm font-mono text-zinc-300 truncate">
+              {selectedProfile ? selectedProfile.itemName : 'No profile selected'}
+            </p>
+            <span className="hidden md:inline text-xs font-mono text-zinc-600">· Industrial Tier Generator</span>
+          </div>
           {selectedProfile && (
-            <span className="text-xs font-mono bg-[#252529] border border-[#333] px-2.5 py-1 rounded text-zinc-300">
+            <span className="text-xs font-mono bg-[#252529] border border-[#333] px-2.5 py-1 rounded text-zinc-300 shrink-0">
               {selectedProfile.totalCasesPerPallet * selectedProfile.maxPalletStack} cases in stack
-              {selectedProfile.maxPalletStack > 3 && <span className="text-red-400 ml-2">⚠ Safety limit</span>}
+              {selectedProfile.maxPalletStack > 3 && <span className="text-red-400 ml-2">⚠ Safety</span>}
             </span>
           )}
         </div>
