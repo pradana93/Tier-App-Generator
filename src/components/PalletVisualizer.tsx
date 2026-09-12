@@ -166,6 +166,7 @@ function SinglePalletStack({
   layerPatterns: LayerPattern[]
   offsetX?: number
 }) {
+  // Multi-pallet view: side-by-side via offsetX (Step 8)
   return (
     <group position={[offsetX, 0, 0]}>
       <Pallet width={palletWidth} length={palletLength} y={0} />
