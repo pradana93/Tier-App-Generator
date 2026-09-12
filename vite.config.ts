@@ -6,10 +6,7 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: { exclude: ['sql.js'] },
   assetsInclude: ['**/*.wasm'],
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
+  build: {
+    chunkSizeWarningLimit: 1500,
   },
 })

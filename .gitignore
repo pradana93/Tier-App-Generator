@@ -28,5 +28,7 @@ dist-ssr
 .env.local
 *.sqlite
 *.db
+# wasm bundle – keep public wasm for sql.js (Vercel same-origin)
 *.wasm
+!public/*.wasm
 .DS_Store

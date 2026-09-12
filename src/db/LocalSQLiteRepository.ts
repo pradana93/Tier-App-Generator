@@ -106,14 +106,12 @@ export class LocalSQLiteRepository implements IProfileRepository {
   }
 
   private async doInit(): Promise<void> {
-    // Load sql.js WASM – uses CDN fallback if local fails
     this.SQL = await initSqlJs({
       locateFile: (file: string) => {
-        // Try local node_modules wasm first, fallback to CDN
-        // Vite will serve sql.js wasm from node_modules/sql.js/dist
         if (file.endsWith('.wasm')) {
-          // For Vite dev: copy wasm to public or use CDN
-          return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.0/${file}`
+          // Serve from public/ for same-origin (Vercel-safe), fallback CDN only if missing
+          // Vite base_url ensures correct path on preview deploys
+          return `${import.meta.env.BASE_URL}${file}`
         }
         return file
       },
