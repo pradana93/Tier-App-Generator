@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { Canvas } from '@react-three/fiber'
 import '@react-three/fiber'
-import { OrbitControls, Grid, Environment } from '@react-three/drei'
+import { OrbitControls, Grid, AdaptiveDpr, AdaptiveEvents, PerformanceMonitor } from '@react-three/drei'
+import { useMemo, useState } from 'react'
 import * as THREE from 'three'
 import type { LayerPattern } from '../types'
 
@@ -10,8 +11,17 @@ const GAP = 0.12
 const CASE_H = 1.1
 const PALLET_H = 0.4
 
+// Shared geometries/materials for perf – reuse instead of creating per mesh
+const caseGeometryCache = new Map<string, THREE.BoxGeometry>()
+function getCaseGeometry(w: number, d: number) {
+  const key = `${w.toFixed(2)}x${d.toFixed(2)}`
+  if (!caseGeometryCache.has(key)) {
+    caseGeometryCache.set(key, new THREE.BoxGeometry(w - 0.04, CASE_H - 0.04, d - 0.04))
+  }
+  return caseGeometryCache.get(key)!
+}
+
 // Compute case positions for a single layer
-// For 11-case, use 4-4-3 grid. For generic n, use cols/rows grid.
 function getCasePositions(
   casesPerLayer: number,
   palletWidth: number,
@@ -21,11 +31,9 @@ function getCasePositions(
   const pw = palletWidth / SCALE
   const pl = palletLength / SCALE
 
-  // Special 11-case layout – tuned for 1000x1200
   if (casesPerLayer === 11) {
     const cw = 2.25
     const cd = 2.75
-    // 4-4-3 base positions (centered)
     const base: { x: number; z: number }[] = []
     const rowZ = [-3.6, 0, 3.6]
     const rowCols = [4, 4, 3]
@@ -41,13 +49,9 @@ function getCasePositions(
     if (!rotate90) {
       return base.map((p) => ({ x: p.x, z: p.z, w: cw, d: cd }))
     }
-    // Alternate: rotate 90deg around center and re-fit
-    // (x,z) -> (-z, x) and swap w/d
-    // For 10x12 pallet, rotated layout still fits; clamp if needed
     return base.map((p) => {
       const rx = -p.z
       const rz = p.x
-      // clamp to stay inside pallet (-pw/2+cw/2 .. pw/2-cw/2)
       const maxX = pw / 2 - cd / 2 - 0.05
       const maxZ = pl / 2 - cw / 2 - 0.05
       return {
@@ -59,14 +63,12 @@ function getCasePositions(
     })
   }
 
-  // Generic grid for other counts
   const cols = Math.ceil(Math.sqrt(casesPerLayer))
   const rows = Math.ceil(casesPerLayer / cols)
-  // Estimate case size to fill pallet with gaps
   const cw = (pw - GAP * (cols + 1)) / cols
   const cd = (pl - GAP * (rows + 1)) / rows
   const caseW = Math.min(cw, cd, 2.8)
-  const caseD = caseW // square-ish fallback
+  const caseD = caseW
 
   const positions: { x: number; z: number; w: number; d: number }[] = []
   for (let i = 0; i < casesPerLayer; i++) {
@@ -93,63 +95,48 @@ function getCasePositions(
   return positions
 }
 
+// Optimized pallet – single mesh, no shadows, no edges
 function Pallet({ width, length, y = 0 }: { width: number; length: number; y?: number }) {
   const w = width / SCALE
   const d = length / SCALE
   const h = PALLET_H
   return (
     <group position={[0, y, 0]}>
-      <mesh position={[0, -h / 2, 0]} castShadow receiveShadow>
+      <mesh position={[0, -h / 2, 0]}>
         <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color="#8B5A2B" roughness={0.85} />
+        <meshStandardMaterial color="#8B5A2B" roughness={0.9} />
       </mesh>
-      <mesh position={[0, -h / 2 + 0.02, 0]}>
+      {/* subtle top plank – cheap, no extra draw call for edges */}
+      <mesh position={[0, -0.08, 0]}>
         <boxGeometry args={[w * 0.98, 0.02, d * 0.98]} />
-        <meshStandardMaterial color="#A67C52" roughness={0.9} />
+        <meshStandardMaterial color="#A67C52" roughness={0.95} />
       </mesh>
-      <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-        <lineBasicMaterial color="#5C3A1E" />
-      </lineSegments>
     </group>
   )
 }
 
-function CaseBox({
+// Cheap per-case mesh – 11 meshes without edges/shadows is still fast enough for 66 cases
+// meshLambert is ~2x cheaper than meshStandard
+function CaseBoxLight({
   x,
   z,
   y,
   w,
   d,
-  pattern,
-  idx,
+  color,
 }: {
   x: number
   z: number
   y: number
   w: number
   d: number
-  pattern: LayerPattern
-  idx: number
+  color: string
 }) {
-  const colors: Record<LayerPattern, string> = {
-    Column: idx % 2 === 0 ? '#60a5fa' : '#3b82f6',
-    Alternate: idx % 2 === 0 ? '#fbbf24' : '#f59e0b',
-    Interlocked: idx % 2 === 0 ? '#34d399' : '#10b981',
-  }
-  const edge =
-    pattern === 'Column' ? '#1e40af' : pattern === 'Alternate' ? '#92400e' : '#065f46'
+  const geom = getCaseGeometry(w, d)
   return (
-    <group position={[x, y, z]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[w - 0.04, CASE_H - 0.04, d - 0.04]} />
-        <meshStandardMaterial color={colors[pattern]} roughness={0.55} metalness={0.08} />
-      </mesh>
-      <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(w - 0.04, CASE_H - 0.04, d - 0.04)]} />
-        <lineBasicMaterial color={edge} />
-      </lineSegments>
-    </group>
+    <mesh position={[x, y, z]} geometry={geom}>
+      <meshLambertMaterial color={color} />
+    </mesh>
   )
 }
 
@@ -166,30 +153,27 @@ function SinglePalletStack({
   layerPatterns: LayerPattern[]
   offsetX?: number
 }) {
-  // Multi-pallet view: side-by-side via offsetX (Step 8)
   return (
     <group position={[offsetX, 0, 0]}>
       <Pallet width={palletWidth} length={palletLength} y={0} />
       {layerPatterns.map((pattern, layerIdx) => {
         const isAlternate = pattern === 'Alternate'
-        // For Alternate, rotate layout 90deg relative to base. For Column, keep identical.
-        // Interlocked: slight offset
         const positions = getCasePositions(casesPerLayer, palletWidth, palletLength, isAlternate)
         const y = PALLET_H / 2 + CASE_H / 2 + layerIdx * CASE_H + 0.02
-        // Interlocked: shift every other row slightly
         const shiftX = pattern === 'Interlocked' ? 0.35 : 0
+        const colorA = pattern === 'Column' ? '#60a5fa' : pattern === 'Alternate' ? '#fbbf24' : '#34d399'
+        const colorB = pattern === 'Column' ? '#3b82f6' : pattern === 'Alternate' ? '#f59e0b' : '#10b981'
         return (
           <group key={layerIdx}>
             {positions.map((p, i) => (
-              <CaseBox
+              <CaseBoxLight
                 key={`${layerIdx}-${i}`}
                 x={p.x + shiftX}
                 z={p.z}
                 y={y}
                 w={p.w}
                 d={p.d}
-                pattern={pattern}
-                idx={i}
+                color={i % 2 === 0 ? colorA : colorB}
               />
             ))}
           </group>
@@ -205,23 +189,26 @@ function Scene({
   casesPerLayer,
   layerPatterns,
   maxPalletStack,
+  onPerfDecline,
 }: {
   palletWidth: number
   palletLength: number
   casesPerLayer: number
   layerPatterns: LayerPattern[]
   maxPalletStack: number
+  onPerfDecline: (dpr: number) => void
 }) {
   const pw = palletWidth / SCALE
-  const gapBetweenPallets = 2 // world units between pallet groups
+  const gapBetweenPallets = 2
   const totalWidth = maxPalletStack * pw + (maxPalletStack - 1) * gapBetweenPallets
   const startX = -totalWidth / 2 + pw / 2
 
   return (
     <>
-      <ambientLight intensity={0.72} />
-      <directionalLight position={[12, 20, 10]} intensity={1.15} castShadow shadow-mapSize={2048} />
-      <directionalLight position={[-10, 14, -8]} intensity={0.35} />
+      <PerformanceMonitor onDecline={() => onPerfDecline(0.6)} onIncline={() => onPerfDecline(1)} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[10, 16, 8]} intensity={0.9} />
+      {/* No shadow, no environment HDR – huge perf win */}
       {Array.from({ length: maxPalletStack }).map((_, i) => (
         <SinglePalletStack
           key={i}
@@ -232,19 +219,27 @@ function Scene({
           offsetX={startX + i * (pw + gapBetweenPallets)}
         />
       ))}
+      {/* Lightweight grid – static, no fade shader */}
       <Grid
         position={[0, -0.21, 0]}
-        args={[40, 40]}
+        args={[30, 30]}
         cellSize={1}
-        cellThickness={0.55}
+        cellThickness={0.4}
         cellColor="#2a2a30"
         sectionSize={5}
         sectionColor="#3a3a44"
-        fadeDistance={35}
-        fadeStrength={1}
+        fadeDistance={20}
+        fadeStrength={0.6}
+        infiniteGrid={false}
       />
-      <OrbitControls enableDamping dampingFactor={0.06} minDistance={6} maxDistance={42} maxPolarAngle={Math.PI / 2.05} target={[0, 2.2, 0]} />
-      <Environment preset="warehouse" />
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.08}
+        minDistance={6}
+        maxDistance={36}
+        maxPolarAngle={Math.PI / 2.05}
+        target={[0, 2.2, 0]}
+      />
     </>
   )
 }
@@ -262,18 +257,38 @@ export function PalletVisualizer({
   layerPatterns: LayerPattern[]
   maxPalletStack?: number
 }) {
-  // Camera adapts to stack width
   const camX = 14 + Math.max(0, maxPalletStack - 1) * 2
+  const [dpr, setDpr] = useState(1.2)
+
   return (
     <div className="w-full h-full bg-[#0a0a0d]">
-      <Canvas shadows camera={{ position: [camX, 10, 15], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}>
+      <Canvas
+        frameloop="demand"
+        dpr={dpr}
+        camera={{ position: [camX, 10, 15], fov: 42 }}
+        gl={{
+          antialias: false,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true,
+          alpha: false,
+        }}
+        onCreated={({ gl }) => {
+          // @ts-ignore
+          gl.toneMapping = THREE.NoToneMapping
+        }}
+        performance={{ min: 0.5 }}
+      >
         <color attach="background" args={['#0a0a0d']} />
+        <AdaptiveDpr pixelated />
+        <AdaptiveEvents />
         <Scene
           palletWidth={palletWidth}
           palletLength={palletLength}
           casesPerLayer={casesPerLayer}
           layerPatterns={layerPatterns}
           maxPalletStack={maxPalletStack}
+          onPerfDecline={setDpr}
         />
       </Canvas>
     </div>
